@@ -1,7 +1,6 @@
-using System;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Npgsql;
-
+using Microsoft.AspNetCore.Mvc;
 public class SalesRepository
 {
     private readonly string _connectionString;
@@ -36,7 +35,7 @@ public class SalesRepository
         return sales;
     }
 
-    public void AddSale(Sale sale)
+    public Sale AddSale(Sale sale)
     {
         using var connection = new NpgsqlConnection(_connectionString);
         connection.Open();
@@ -44,6 +43,50 @@ public class SalesRepository
         cmd.Parameters.AddWithValue("productName", sale.ProductName);
         cmd.Parameters.AddWithValue("price", sale.Price);
         cmd.Parameters.AddWithValue("saleDate", sale.SaleDate);
+        cmd.ExecuteNonQuery();
+        sale = GetAllSales().Last();
+        return sale;
+    }
+
+    public Sale UpdateSale(int id, Sale sale)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = new NpgsqlCommand("UPDATE sales SET ProductName = @productName, Price = @price, SaleDate = @saleDate WHERE Id = @id", connection);
+        cmd.Parameters.AddWithValue("productName", sale.ProductName);
+        cmd.Parameters.AddWithValue("price", sale.Price);
+        cmd.Parameters.AddWithValue("saleDate", sale.SaleDate);
+        cmd.Parameters.AddWithValue("id", id);
+        cmd.ExecuteNonQuery();
+        return FindById(id);
+    }
+    public Sale FindById(int id){
+        using  var connection = new NpgsqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = new NpgsqlCommand("SELECT * FROM sales WHERE Id = @id", connection);
+        cmd.Parameters.AddWithValue("id", id);
+        using var reader = cmd.ExecuteReader();
+        reader.Read();
+        if (!reader.HasRows)
+        {
+            return null;
+        }
+        var sale = new Sale
+        {
+            Id = reader.GetInt32(0),
+            ProductName = reader.GetString(1),
+            Price = reader.GetDecimal(2),
+            SaleDate = reader.GetDateTime(3)
+        };
+        return sale;
+    }
+
+    public void DeleteSale(int id)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = new NpgsqlCommand("DELETE FROM sales WHERE Id = @id", connection);
+        cmd.Parameters.AddWithValue("id", id);
         cmd.ExecuteNonQuery();
     }
 }

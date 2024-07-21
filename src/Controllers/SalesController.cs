@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-[Route("api/[controller]")]
+[Route("api/compra")]
 [ApiController]
 public class CompraController : ControllerBase
 {
@@ -9,18 +9,34 @@ public class CompraController : ControllerBase
 
     public CompraController(IConfiguration configuration)
     {
-        Console.WriteLine("Connection Initiated" + configuration.GetConnectionString("SalesDbConn"));
         _salesRepository = new SalesRepository(configuration.GetConnectionString("SalesDbConn"));
     }
     [HttpGet]
-    public List<Sale> Get()
+    public IActionResult Get()
     {
-        return _salesRepository.GetAllSales();
+        return Ok(_salesRepository.GetAllSales());
     }
 
     [HttpPost]
-    public void Post([FromBody] Sale sale)
+    public IActionResult Post([FromBody] Sale sale)
     {
-        _salesRepository.AddSale(sale);
+      return Ok(  _salesRepository.AddSale(sale));
+    }
+
+    [HttpPut("{id}")]
+    public IActionResult Put(int id, [FromBody] Sale updated)
+    {
+        Sale sale = _salesRepository.UpdateSale(id, updated);
+        if (sale == null)
+        {
+            return NotFound();
+        }
+        return Ok(sale);
+    }
+
+    [HttpDelete("{id}")]
+    public void Delete(int id)
+    {
+        _salesRepository.DeleteSale(id);
     }
 }
